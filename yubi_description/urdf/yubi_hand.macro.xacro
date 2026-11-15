@@ -1,0 +1,169 @@
+<?xml version="1.0"?>
+<!-- yubi_hand macro only (no top-level links), so other robots can include it as an end effector. -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:property name="palm_size" value="0.044 0.067 0.0735"/>
+  <xacro:property name="finger_mesh_dir" value="package://yubi_description/meshes"/>
+  <xacro:property name="finger_lower_limit" value="0.00"/>
+  <xacro:property name="finger_upper_limit" value="0.94"/>
+  <xacro:property name="finger_offset_y" value="0.015"/>
+  <xacro:property name="finger_tip_offset_y" value="-0.014"/>
+  <xacro:property name="finger_tip_offset_x" value="0.10943"/>
+
+  <!-- Estimated masses [kg] (no measured values yet): palm with servo, camera, one finger with pad -->
+  <xacro:property name="palm_mass" value="0.30"/>
+  <xacro:property name="cam_mass" value="0.03"/>
+  <xacro:property name="finger_mass" value="0.04"/>
+
+  <xacro:macro name="yubi_box_inertial" params="mass x y z xyz">
+    <inertial>
+      <origin xyz="${xyz}" rpy="0 0 0"/>
+      <mass value="${mass}"/>
+      <inertia ixx="${mass*(y*y+z*z)/12}" ixy="0" ixz="0" iyy="${mass*(x*x+z*z)/12}" iyz="0" izz="${mass*(x*x+y*y)/12}"/>
+    </inertial>
+  </xacro:macro>
+
+  <!-- Colours of the printed and bought parts (yubi-hw BOM): PLA black body, PLA red fingers -->
+  <material name="yubi_black">
+    <color rgba="0.05 0.05 0.05 1"/>
+  </material>
+  <material name="yubi_red">
+    <color rgba="0.80 0.04 0.04 1"/>
+  </material>
+  <material name="yubi_servo">
+    <color rgba="0.20 0.20 0.22 1"/>
+  </material>
+  <material name="yubi_metal">
+    <color rgba="0.72 0.74 0.76 1"/>
+  </material>
+  <material name="yubi_camera">
+    <color rgba="0.08 0.16 0.38 1"/>
+  </material>
+
+  <xacro:macro name="yubi_hand" params="hand_prefix">
+    <link name="${hand_prefix}_hand_root">
+      <!-- Visuals from the yubi-hw gripper assembly (tools/build_gripper_meshes.py); collision stays a box -->
+      <visual>
+        <geometry>
+          <mesh filename="${finger_mesh_dir}/gripper_body.STL"/>
+        </geometry>
+        <material name="yubi_black"/>
+      </visual>
+      <visual>
+        <geometry>
+          <mesh filename="${finger_mesh_dir}/gripper_servo.STL"/>
+        </geometry>
+        <material name="yubi_servo"/>
+      </visual>
+      <visual>
+        <geometry>
+          <mesh filename="${finger_mesh_dir}/gripper_metal.STL"/>
+        </geometry>
+        <material name="yubi_metal"/>
+      </visual>
+      <collision>
+        <origin xyz="-0.022 0 -0.02015" rpy="0 0 0"/>
+        <geometry>
+          <box size="${palm_size}"/>
+        </geometry>
+      </collision>
+      <xacro:yubi_box_inertial mass="${palm_mass}" x="0.044" y="0.067" z="0.0735" xyz="-0.022 0 -0.02015"/>
+    </link>
+
+    <joint name="${hand_prefix}_camera_joint" type="fixed">
+      <origin xyz="0 0 0.0426" rpy="0 0 0"/>
+      <parent link="${hand_prefix}_hand_root"/>
+      <child link="${hand_prefix}_hand_cam_link"/>
+    </joint>
+
+    <link name="${hand_prefix}_hand_cam_link">
+      <!-- ELP-USBFHD01M-L180 (OV2710, 180 deg fisheye) from the yubi-hw gripper assembly -->
+      <visual>
+        <geometry>
+          <mesh filename="${finger_mesh_dir}/camera_elp.STL"/>
+        </geometry>
+        <material name="yubi_camera"/>
+      </visual>
+      <collision>
+        <origin xyz="-0.0175 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.035 0.032 0.042"/>
+        </geometry>
+      </collision>
+      <xacro:yubi_box_inertial mass="${cam_mass}" x="0.035" y="0.032" z="0.042" xyz="-0.0175 0 0"/>
+    </link>
+
+    <!-- Primary finger (driven directly by encoder) -->
+    <joint name="${hand_prefix}_right_finger_joint" type="revolute">
+      <origin xyz="-0.016 ${-finger_offset_y} 0" rpy="0 0 0"/>
+      <parent link="${hand_prefix}_hand_root"/>
+      <child link="${hand_prefix}_right_finger_link"/>
+      <axis xyz="0 0 -1"/>
+      <limit lower="${finger_lower_limit}" upper="${finger_upper_limit}" effort="5" velocity="2"/>
+    </joint>
+
+    <link name="${hand_prefix}_right_finger_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${finger_mesh_dir}/hand_${hand_prefix}_right_finger_link.STL"/>
+        </geometry>
+        <material name="yubi_red"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${finger_mesh_dir}/hand_${hand_prefix}_right_finger_link_col.STL"/>
+        </geometry>
+      </collision>
+      <!-- finger approximated as a 0.11 x 0.02 x 0.03 m bar along x -->
+      <xacro:yubi_box_inertial mass="${finger_mass}" x="0.11" y="0.02" z="0.03" xyz="0.055 0 0"/>
+    </link>
+
+    <joint name="${hand_prefix}_right_finger_tip_joint" type="fixed">
+      <origin xyz="${finger_tip_offset_x} ${finger_tip_offset_y} 0" rpy="0 0 0"/>
+      <parent link="${hand_prefix}_right_finger_link"/>
+      <child link="${hand_prefix}_right_finger_tip_link"/>
+    </joint>
+
+    <link name="${hand_prefix}_right_finger_tip_link">
+    </link>
+
+    <!-- Mirror finger (mimic joint, inverse motion) -->
+    <joint name="${hand_prefix}_left_finger_joint" type="revolute">
+      <origin xyz="-0.016 ${finger_offset_y} 0" rpy="0 0 0"/>
+      <parent link="${hand_prefix}_hand_root"/>
+      <child link="${hand_prefix}_left_finger_link"/>
+      <axis xyz="0 0 -1"/>
+      <limit lower="${-finger_upper_limit}" upper="${-finger_lower_limit}" effort="5" velocity="2"/>
+      <mimic joint="${hand_prefix}_right_finger_joint" multiplier="-1" offset="0"/>
+    </joint>
+
+    <link name="${hand_prefix}_left_finger_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${finger_mesh_dir}/hand_${hand_prefix}_left_finger_link.STL"/>
+        </geometry>
+        <material name="yubi_red"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${finger_mesh_dir}/hand_${hand_prefix}_left_finger_link_col.STL"/>
+        </geometry>
+      </collision>
+      <!-- finger approximated as a 0.11 x 0.02 x 0.03 m bar along x -->
+      <xacro:yubi_box_inertial mass="${finger_mass}" x="0.11" y="0.02" z="0.03" xyz="0.055 0 0"/>
+    </link>
+
+    <joint name="${hand_prefix}_left_finger_tip_joint" type="fixed">
+      <origin xyz="${finger_tip_offset_x} ${-finger_tip_offset_y} 0" rpy="0 0 0"/>
+      <parent link="${hand_prefix}_left_finger_link"/>
+      <child link="${hand_prefix}_left_finger_tip_link"/>
+    </joint>
+
+    <link name="${hand_prefix}_left_finger_tip_link">
+    </link>
+  </xacro:macro>
+
+</robot>

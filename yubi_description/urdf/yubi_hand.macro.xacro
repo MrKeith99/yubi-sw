@@ -39,24 +39,27 @@
     <color rgba="0.08 0.16 0.38 1"/>
   </material>
 
-  <xacro:macro name="yubi_hand" params="hand_prefix">
+  <!-- mesh_dir: a gripper build other than the yubi-hw one brings its own meshes under the same file names.
+       finger_parts: the finger visual is split by material (<finger>.STL red pad, <finger>_metal.STL,
+       <finger>_black.STL) instead of one mesh. -->
+  <xacro:macro name="yubi_hand" params="hand_prefix mesh_dir:=${finger_mesh_dir} finger_parts:=false">
     <link name="${hand_prefix}_hand_root">
       <!-- Visuals from the yubi-hw gripper assembly (tools/build_gripper_meshes.py); collision stays a box -->
       <visual>
         <geometry>
-          <mesh filename="${finger_mesh_dir}/gripper_body.STL"/>
+          <mesh filename="${mesh_dir}/gripper_body.STL"/>
         </geometry>
         <material name="yubi_black"/>
       </visual>
       <visual>
         <geometry>
-          <mesh filename="${finger_mesh_dir}/gripper_servo.STL"/>
+          <mesh filename="${mesh_dir}/gripper_servo.STL"/>
         </geometry>
         <material name="yubi_servo"/>
       </visual>
       <visual>
         <geometry>
-          <mesh filename="${finger_mesh_dir}/gripper_metal.STL"/>
+          <mesh filename="${mesh_dir}/gripper_metal.STL"/>
         </geometry>
         <material name="yubi_metal"/>
       </visual>
@@ -79,7 +82,7 @@
       <!-- ELP-USBFHD01M-L180 (OV2710, 180 deg fisheye) from the yubi-hw gripper assembly -->
       <visual>
         <geometry>
-          <mesh filename="${finger_mesh_dir}/camera_elp.STL"/>
+          <mesh filename="${mesh_dir}/camera_elp.STL"/>
         </geometry>
         <material name="yubi_camera"/>
       </visual>
@@ -105,14 +108,28 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="${finger_mesh_dir}/hand_${hand_prefix}_right_finger_link.STL"/>
+          <mesh filename="${mesh_dir}/hand_${hand_prefix}_right_finger_link.STL"/>
         </geometry>
         <material name="yubi_red"/>
       </visual>
+      <xacro:if value="${finger_parts}">
+        <visual>
+          <geometry>
+            <mesh filename="${mesh_dir}/hand_${hand_prefix}_right_finger_link_metal.STL"/>
+          </geometry>
+          <material name="yubi_metal"/>
+        </visual>
+        <visual>
+          <geometry>
+            <mesh filename="${mesh_dir}/hand_${hand_prefix}_right_finger_link_black.STL"/>
+          </geometry>
+          <material name="yubi_black"/>
+        </visual>
+      </xacro:if>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="${finger_mesh_dir}/hand_${hand_prefix}_right_finger_link_col.STL"/>
+          <mesh filename="${mesh_dir}/hand_${hand_prefix}_right_finger_link_col.STL"/>
         </geometry>
       </collision>
       <!-- finger approximated as a 0.11 x 0.02 x 0.03 m bar along x -->
@@ -142,14 +159,28 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="${finger_mesh_dir}/hand_${hand_prefix}_left_finger_link.STL"/>
+          <mesh filename="${mesh_dir}/hand_${hand_prefix}_left_finger_link.STL"/>
         </geometry>
         <material name="yubi_red"/>
       </visual>
+      <xacro:if value="${finger_parts}">
+        <visual>
+          <geometry>
+            <mesh filename="${mesh_dir}/hand_${hand_prefix}_left_finger_link_metal.STL"/>
+          </geometry>
+          <material name="yubi_metal"/>
+        </visual>
+        <visual>
+          <geometry>
+            <mesh filename="${mesh_dir}/hand_${hand_prefix}_left_finger_link_black.STL"/>
+          </geometry>
+          <material name="yubi_black"/>
+        </visual>
+      </xacro:if>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="${finger_mesh_dir}/hand_${hand_prefix}_left_finger_link_col.STL"/>
+          <mesh filename="${mesh_dir}/hand_${hand_prefix}_left_finger_link_col.STL"/>
         </geometry>
       </collision>
       <!-- finger approximated as a 0.11 x 0.02 x 0.03 m bar along x -->
